@@ -42,21 +42,6 @@
     );
 
 
-
-    Info<< "Reading field Uc\n" << endl;
-    volVectorField Uc
-    (
-        IOobject
-        (
-            "Uc",
-            runTime.timeName(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh
-    );
-
     Info<< "Reading field dU\n" << endl;
     volVectorField dU
     (

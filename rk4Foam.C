@@ -69,7 +69,6 @@ int main(int argc, char *argv[])
         U = Uold + (A[0][0]) * dU1;
         U.correctBoundaryConditions();
         solve(fvm::laplacian(p) == (1.0 / (ct[0] * runTime.deltaT())) * fvc::div(U));
-        const volScalarField p1(p); 
         #include "continuityErrs.H"
         U = U - (ct[0]) * runTime.deltaT() * fvc::grad(p);
         U.correctBoundaryConditions();
@@ -80,7 +79,6 @@ int main(int argc, char *argv[])
         U = Uold + (A[1][1]) * dU2;
         U.correctBoundaryConditions();
         solve(fvm::laplacian(p) == (1.0 / (ct[1] * runTime.deltaT())) * fvc::div(U));
-        const volScalarField p2(p); 
         #include "continuityErrs.H"
         U = U - ct[1] * runTime.deltaT() * fvc::grad(p);
         U.correctBoundaryConditions();
@@ -91,7 +89,6 @@ int main(int argc, char *argv[])
         U = Uold + (A[2][2]) * dU3;
         U.correctBoundaryConditions();
         solve(fvm::laplacian(p) == (1.0 / ((ct[2]) * runTime.deltaT())) * fvc::div(U));
-        volScalarField p3(p); 
         #include "continuityErrs.H"
         U = U - ct[2] * runTime.deltaT() * fvc::grad(p);
         U.correctBoundaryConditions();
@@ -102,7 +99,6 @@ int main(int argc, char *argv[])
         U = Uold + (A[3][0]) * dU1 + (A[3][1]) * dU2 + (A[3][2]) * dU3 + (A[3][3]) * dU4;
         U.correctBoundaryConditions();
         solve(fvm::laplacian(p) == (1.0 / ((ct[3]) * runTime.deltaT())) * fvc::div(U));
-        const volScalarField p4(p); 
         #include "continuityErrs.H"
         U = U - ct[3] * runTime.deltaT() * fvc::grad(p);
         U.correctBoundaryConditions();
