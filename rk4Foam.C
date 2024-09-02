@@ -41,7 +41,6 @@ int main(int argc, char *argv[])
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
     Info<< "\nStarting time loop\n" << endl;
-    #include "pEqn.H"
 
     // Time loop
     while (runTime.loop())
@@ -103,9 +102,7 @@ int main(int argc, char *argv[])
         U = U - ct[3] * runTime.deltaT() * fvc::grad(p);
         U.correctBoundaryConditions();
 
-        // Final Pressure Correction
         phi = fvc::interpolate(U) & mesh.Sf();
-
 
         laminarTransport.correct();
         turbulence->correct();

@@ -42,20 +42,6 @@
     );
 
 
-    Info<< "Reading field dU\n" << endl;
-    volVectorField dU
-    (
-        IOobject
-        (
-            "dU",
-            runTime.timeName(),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh
-    );
-
 
 dimensionedScalar dt("dt", dimensionSet(0,0,1,0,0,0,0),SMALL); 
 #   include "createPhi.H"
