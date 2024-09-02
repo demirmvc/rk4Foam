@@ -1,0 +1,246 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2212                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+	
+	
+	diff
+	{
+		type coded;
+		libs (utilityFunctionObjects);
+
+		name diff;
+		codeWrite
+		#{
+			const volVectorField& c = mesh().C();
+			const volScalarField x = c & vector(1.0, 0.0, 0.0);
+			const volScalarField y = c & vector(0.0, 1.0, 0.0);
+			const Time& time_ = mesh().time();
+			const volVectorField& U = mesh().lookupObject<volVectorField>("U");
+			const volScalarField& p = mesh().lookupObject<volScalarField>("p");
+
+			scalarField p_a(mesh().nCells(), 0.0);
+			
+			volVectorField analytical_velocity
+			(
+				IOobject
+				(
+					"analytical_velocity",
+					time().timeName(),
+					mesh(),
+					IOobject::READ_IF_PRESENT,
+					IOobject::AUTO_WRITE
+				),
+				mesh(),
+				dimensionedVector(dimVelocity, Zero)
+			);
+
+			volVectorField error_velocity
+			(
+				IOobject
+				(
+					"error_velocity",
+					time().timeName(),
+					mesh(),
+					IOobject::READ_IF_PRESENT,
+					IOobject::AUTO_WRITE
+				),
+				mesh(),
+				dimensionedVector(dimVelocity, Zero)
+			);
+			volScalarField error_velocity_mag
+			(
+				IOobject
+				(
+					"error_velocity_mag",
+					time().timeName(),
+					mesh(),
+					IOobject::READ_IF_PRESENT,
+					IOobject::AUTO_WRITE
+				),
+				mesh(),
+				dimensionedScalar(dimVelocity*dimVelocity, Zero)
+			);
+
+			volScalarField error_velocity_mag_squ
+			(
+				IOobject
+				(
+					"error_velocity_mag_squ",
+					time().timeName(),
+					mesh(),
+					IOobject::READ_IF_PRESENT,
+					IOobject::AUTO_WRITE
+				),
+				mesh(),
+				dimensionedScalar(dimVelocity*dimVelocity, Zero)
+			);
+			volScalarField analytical_pres
+			(
+				IOobject
+				(
+					"analytical_pres",
+					time().timeName(),
+					mesh(),
+					IOobject::READ_IF_PRESENT,
+					IOobject::AUTO_WRITE
+				),
+				mesh(),
+				dimensionedScalar(dimPressure, Zero)
+			);
+			volScalarField error_pres
+			(
+				IOobject
+				(
+					"error_pres",
+					time().timeName(),
+					mesh(),
+					IOobject::READ_IF_PRESENT,
+					IOobject::AUTO_WRITE
+				),
+				mesh(),
+				dimensionedScalar(dimPressure, Zero)
+			);
+
+			//const scalar nu = 1.0;
+			//connected to nu in controlDict, which is used for the analytical solution, change one, change the other as well.
+			
+			IOdictionary transportProperties
+			(
+			 IOobject
+			 (
+			  "transportProperties",
+			  time().constant(),
+			  mesh(),
+			  IOobject::MUST_READ_IF_MODIFIED,
+			  IOobject::NO_WRITE
+			 )
+			);
+
+			const auto nu = transportProperties.get<scalar>("nu");
+			// from blockMesh
+			const scalar L =  2*Foam::constant::mathematical::pi;
+			double sumMagVelocity = 0.0;
+			// Get the number of cells.
+			int nCells = U.size();
+			// Sum the magnitudes of the velocity vectors for all cells
+			forAll(U, i)
+			{
+				sumMagVelocity += mag(U[i]);
+			}
+			// Calculate average velocity 
+			double avgMagVelocity = sumMagVelocity / nCells;
+			double magnu = mag(nu);
+			const double Re = avgMagVelocity * L/magnu;
+			Info << "Reynold Number: " << Re << endl;
+
+			forAll(c, i){
+				scalar vx, vy, vz;
+				vx = -Foam::sin(Foam::constant::mathematical::pi*x[i])*Foam::cos(Foam::constant::mathematical::pi*y[i]);
+				vy =  Foam::cos(Foam::constant::mathematical::pi*x[i])*Foam::sin(Foam::constant::mathematical::pi*y[i]);
+				vz = 0.0;
+
+				analytical_velocity[i] = vector(vx, vy, vz);
+				error_velocity[i] = analytical_velocity[i] - U[i];
+				error_velocity_mag[i] = mag(error_velocity[i]);
+				error_velocity_mag_squ[i] = std::pow(error_velocity_mag[i],2.0);
+				analytical_pres[i] = 0.25*(Foam::cos(2.*Foam::constant::mathematical::pi*x[i]) + Foam::cos(2.*Foam::constant::mathematical::pi*y[i]));
+				error_pres[i] = mag(analytical_pres[i] - p[i]);
+
+			}
+			analytical_velocity.write();
+			error_velocity.write();
+			error_velocity_mag.write();
+			error_velocity_mag_squ.write();
+			analytical_pres.write();
+			error_pres.write();
+		#};
+		executeControl writeTime;
+		executeInterval 1;
+		writeControl writeTime;
+		writeInterval 1;
+	}
+
+	readFields1
+	{
+	    // Mandatory entries (unmodifiable)
+	    type            readFields;
+	    libs            (fieldFunctionObjects);
+
+	    // Mandatory entries (runtime modifiable)
+	    fields      (error_velocity_mag error_velocity_mag_squ error_pres);
+
+	    enabled         true;
+	    readOnStart true;
+	    log             true;
+	    timeStart       0;
+
+	    executeControl writeTime;
+	    executeInterval 1;
+	    writeControl writeTime;
+	    writeInterval 1;
+	}
+	
+	error_velocity_norm
+	{
+	    type		volFieldValue;
+	    libs		(fieldFunctionObjects);
+
+	    fields		(error_velocity_mag);
+	    operation 	max;
+	    regionType	all;
+
+	    postOperation 	none;
+
+	    writeFields	true;
+	    writeToFile	true;
+
+	    executeControl writeTime;
+	    executeInterval 1;
+	    writeControl writeTime;
+	    writeInterval 1;
+    	}
+		
+	L2_error_velocity_norm
+	{
+	    type		volFieldValue;
+	    libs		(fieldFunctionObjects);
+
+	    fields		(error_velocity_mag_squ);
+	    operation 	sum;
+	    regionType	all;
+
+	    postOperation 	sqrt;
+
+	    writeFields	true;
+	    writeToFile	true;
+
+	    executeControl writeTime;
+	    executeInterval 1;
+	    writeControl writeTime;
+	    writeInterval 1;
+    	}
+
+	error_pressure_norm
+        {
+            type                volFieldValue;
+            libs                (fieldFunctionObjects);
+
+            fields              (error_pres);
+            operation   max;
+            regionType  all;
+
+            postOperation       none;
+
+            writeFields true;
+            writeToFile true;
+
+	    executeControl writeTime;
+	    executeInterval 1;
+	    writeControl writeTime;
+	    writeInterval 1;
+    	}
+
