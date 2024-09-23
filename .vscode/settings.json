@@ -1,5 +1,24 @@
 {
     "files.associations": {
-        "rk4Foam.C": "cpp"
+        "rk4Foam.C": "cpp",
+        "cstdlib": "cpp",
+        "array": "cpp",
+        "cmath": "cpp",
+        "cstdarg": "cpp",
+        "cstddef": "cpp",
+        "cstdio": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "initializer_list": "cpp",
+        "limits": "cpp",
+        "new": "cpp",
+        "*.tcc": "cpp",
+        "cstdint": "cpp",
+        "typeinfo": "cpp",
+        "ostream": "cpp",
+        "vector": "cpp",
+        "numbers": "cpp"
     }
 }

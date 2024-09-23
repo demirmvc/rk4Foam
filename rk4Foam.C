@@ -46,7 +46,6 @@ int main(int argc, char *argv[])
     while (runTime.loop())
     {
         Info<< "Time = " << runTime.timeName() << nl << endl;
-
         #include "CourantNo.H"
 
         piso.read();
@@ -58,14 +57,15 @@ int main(int argc, char *argv[])
             {0.0, 0., 1., 0.0},       
             {0.16666666666, 0.33333333333, 0.33333333333, 0.16666666666}  
         }};
-        std::array<double, 4> ct = {0.5, 0.5, 1, 1.0};
+        std::array<double, 4> ct = {0.5, 0.5, 1.0, 1.0};
 
         Uold = U;
 
         // 1st Stage
         phi = fvc::interpolate(U) & mesh.Sf();
-        const volVectorField dU1 = runTime.deltaT() * (fvc::laplacian(turbulence->nuEff(), U) - fvc::div(phi, U)); //intermediate velocity
-        U = Uold + (A[0][0]) * dU1; //k2
+        const volVectorField dU1 = runTime.deltaT() * (fvc::laplacian(turbulence->nuEff(), U) - fvc::div(phi, U)); //intermediate velocity k1
+        // use this velocity while calculating k2. y +0.5*k1 
+        U = Uold + (A[0][0]) * dU1; 
         U.correctBoundaryConditions();
         solve(fvm::laplacian(p) == (1.0 / (ct[0] * runTime.deltaT())) * fvc::div(U)); 
         #include "continuityErrs.H"
@@ -74,8 +74,9 @@ int main(int argc, char *argv[])
 
         // 2nd Stage
         phi = fvc::interpolate(U) & mesh.Sf();
-        const volVectorField dU2 = runTime.deltaT() * (fvc::laplacian(turbulence->nuEff(), U) - fvc::div(phi, U));
-        U = Uold + (A[1][1]) * dU2; //k3
+        const volVectorField dU2 = runTime.deltaT() * (fvc::laplacian(turbulence->nuEff(), U) - fvc::div(phi, U)); //k2 
+         // use this velocity while calculating k2. y +0.5*k2
+        U = Uold + (A[1][1]) * dU2; 
         U.correctBoundaryConditions();
         solve(fvm::laplacian(p) == (1.0 / (ct[1] * runTime.deltaT())) * fvc::div(U));
         #include "continuityErrs.H"
@@ -84,7 +85,8 @@ int main(int argc, char *argv[])
 
         // 3rd Stage
         phi = fvc::interpolate(U) & mesh.Sf();
-        const volVectorField dU3 = runTime.deltaT() * (fvc::laplacian(turbulence->nuEff(), U) - fvc::div(phi, U));
+        const volVectorField dU3 = runTime.deltaT() * (fvc::laplacian(turbulence->nuEff(), U) - fvc::div(phi, U)); // k3
+        // use this velocity while calculating k2. y + k3
         U = Uold + (A[2][2]) * dU3; //k4
         U.correctBoundaryConditions();
         solve(fvm::laplacian(p) == (1.0 / ((ct[2]) * runTime.deltaT())) * fvc::div(U));
@@ -94,7 +96,8 @@ int main(int argc, char *argv[])
 
         // 4th Stage
         phi = fvc::interpolate(U) & mesh.Sf();
-        const volVectorField dU4 = runTime.deltaT() * (fvc::laplacian(turbulence->nuEff(), U) - fvc::div(phi, U));
+        const volVectorField dU4 = runTime.deltaT() * (fvc::laplacian(turbulence->nuEff(), U) - fvc::div(phi, U)); //k4
+        // U_(n+1) = U_n + (1/6)*k1 + (1/3)*k2 + (1/3)*k3 + (1/6)*k4
         U = Uold + (A[3][0]) * dU1 + (A[3][1]) * dU2 + (A[3][2]) * dU3 + (A[3][3]) * dU4;
         U.correctBoundaryConditions();
         solve(fvm::laplacian(p) == (1.0 / ((ct[3]) * runTime.deltaT())) * fvc::div(U));
